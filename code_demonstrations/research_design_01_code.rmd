@@ -21,7 +21,7 @@ knitr::opts_chunk$set(
   message = F)
 ```
 
-# Slide 14
+# Slide 15
 
 ```{r}
 library(tidyverse); library(ggthemes)
@@ -45,7 +45,7 @@ population_nyc <-
   )
 ```
 
-# Slide 20
+# Slide 21
 
 ```{r}
 samples <- 
@@ -53,11 +53,11 @@ samples <-
   slice_sample(n = 100, replace = FALSE)
 ```
 
-# Slide 25
+# Slide 26
 
 ```{r}
 ggplot(samples) + 
-  geom_density(aes(height))
+  geom_density(aes(x = height))
 ```
 
 ```{r}
@@ -72,7 +72,7 @@ ggplot(samples) +
   theme(legend.position = "")
 ```
 
-# Slide 26
+# Slide 27
 
 ```{r}
 samples %>%

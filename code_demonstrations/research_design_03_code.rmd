@@ -1,0 +1,97 @@
+---
+title: "3. Research Design"
+description: |
+  Example code used in class discussion.
+author:
+  - name: Scott Spencer 
+    url: https://ssp3nc3r.github.io
+    affiliation: Columbia University
+    affiliation_url: https://sps.columbia.edu/faculty/scott-spencer
+date: "2021 September 29"
+output:
+  bookdown::html_document2:
+    base_format: distill::distill_article
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = F,
+  error = F,
+  message = F)
+```
+
+# Slide 10
+
+```{r}
+set.seed(3)
+z <- sample(x = c(0,0,0,0,1,1,1,1), size = 8)
+```
+
+# Slide 11
+
+```{r}
+d <- 
+  read.table(text = '
+  Unit    Female Age z yi0 yi1
+  Audrey    1    40  0 140 135
+  Anna      1    40  0 140 135
+  Bob       0    50  0 150 140
+  Bill      0    50  0 150 140
+  Caitlin   1    60  1 160 155
+  Cara      1    60  1 160 155
+  Dave      0    70  1 170 160
+  Doug      0    70  1 170 160
+', header = TRUE)
+
+tau_tru <- with(d, mean(yi1 - yi0) )  
+
+d$yi    <- with(d, yi0 * (1 - z) + yi1 * z)
+y1      <- with(d, mean(yi[z == 1]) )
+y0      <- with(d, mean(yi[z == 0]) )
+tau_hat <- y1 - y0
+
+set.seed(123)
+
+d$z     <- sample(c(0, 0, 0, 0, 1, 1, 1, 1), 8)
+d$yi    <- with(d, yi0 * (1 - z) + yi1 * z)
+y1      <- with(d, mean(yi[z == 1]) )
+y0      <- with(d, mean(yi[z == 0]) )
+tau_hat <- y1 - y0
+```
+
+# Slide 12
+
+```{r}
+
+sim_experiment <- function(d) {
+  
+  d$z <- sample(c(0, 0, 0, 0, 1, 1, 1, 1), 8)
+  y1  <- with(d, mean(yi1[z == 1]) )
+  y0  <- with(d, mean(yi0[z == 0]) )
+  
+  return(y1 - y0)
+}
+
+tau_hat <- replicate( 1e6, sim_experiment(d) )
+
+library(ggplot2)
+library(ggthemes)
+
+ggplot() + 
+  theme_tufte() +
+  geom_histogram(aes(tau_hat), 
+                 bins  = 10, 
+                 fill  = "lightgray", 
+                 color = "white") +
+  geom_vline(aes(xintercept = tau_tru), 
+             color = "pink", 
+             lwd = 1.1) +
+  geom_vline(aes(xintercept = mean(tau_hat)), 
+             color    = "dodgerblue", 
+             linetype = "dashed")
+
+
+E_tau_hat <- mean(tau_hat)
+```
+

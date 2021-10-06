@@ -1,0 +1,226 @@
+---
+title: "4. Research Design"
+description: |
+  Example code used in class discussion.
+author:
+  - name: Scott Spencer 
+    url: https://ssp3nc3r.github.io
+    affiliation: Columbia University
+    affiliation_url: https://sps.columbia.edu/faculty/scott-spencer
+date: "2021 October 6"
+output:
+  bookdown::html_document2:
+    base_format: distill::distill_article
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = F,
+  error = F,
+  message = F)
+```
+
+Load libraries to use underlying functions
+
+```{r}
+library(tidyverse)
+library(ggthemes)
+library(latex2exp)
+library(patchwork)
+theme_set( theme_tufte(base_family = "sans") )
+```
+
+# Slide 9
+
+```{r}
+set.seed(29914)
+
+n     <- seq(1, 10000, by = 25)
+mu    <- 0
+sigma <- 1
+x_bar <- sapply(n, FUN = function(n) {mean( rnorm(n, mu, sigma) )} )
+```
+
+```{r}
+ggplot() +
+  scale_x_continuous(labels = scales::comma) +
+  geom_hline(yintercept = mu, color = "pink", lwd = 2) +
+  geom_point(aes(n, x_bar), size = 0.5, color = "dodgerblue") +
+  geom_line(aes(n, x_bar), alpha = 0.2, color = "dodgerblue") +
+  annotate("text", 0, mu, hjust = 1, size = 16/.pt, label = TeX("$\\mu$") ) +
+  labs(x = "sample size, n", y = TeX("sample mean, $\\bar{x}$"))
+```
+
+# Slide 10
+
+```{r}
+sample_mean <- function() { 
+  sapply(n, FUN = function(n) {mean( rnorm(n, mu, sigma) )} ) 
+  }
+
+x_bar <- replicate(1000, sample_mean() )
+s <- apply(x_bar, 1, sd)
+
+ggplot() +
+  geom_point(aes(n, s), color = "dodgerblue") +
+  geom_line(aes(n, sigma / sqrt(n) ), color = "pink")
+```
+
+# Slide 11
+
+```{r}
+pdf <- ggplot() +
+  theme(panel.grid.major = element_line(color = "lightgray", linetype = "dotted")) +
+  scale_x_continuous(breaks = seq(-2, 2)) +
+  scale_y_continuous(breaks = dnorm(seq(-2, 2)), labels = scales::comma) +
+  geom_vline(xintercept = 0, color = "pink") +
+  stat_function(fun  = dnorm, 
+                args = list(mean = 0, sd = 1),
+                geom = "density",
+                xlim = c(-4,4)) +
+  labs(x = TeX("$\\sigma$"), y = TeX("$\\Phi(x)$"))
+
+pdf
+```
+
+# Slide 12
+
+```{r}
+cdf <- ggplot() +
+  theme(panel.grid.major = element_line(color = "lightgray", linetype = "dotted")) +
+  scale_x_continuous(breaks = seq(-2, 2)) +
+  scale_y_continuous(breaks = pnorm(seq(-2, 2)), 
+                     labels = scales::label_percent(accuracy = 1)) +
+  geom_vline(xintercept = 0, color = "pink") +
+  stat_function(fun  = pnorm, 
+                args = list(mean = 0, sd = 1),
+                geom = "density",
+                xlim = c(-4,4)) +
+  labs(x = TeX("$\\sigma$"), y = TeX("$F_\\Phi(x)$"))
+
+pdf / cdf
+```
+
+# Slide 18
+
+```{r}
+set.seed(92)
+
+n <- 30
+mu <- lambda <- 2.7
+sigma <- sqrt(lambda)
+x <- rpois(n, lambda)
+```
+
+```{r}
+x_bar <- mean(x)
+
+z <- ( x_bar - mu ) / ( sigma / sqrt(n) )
+p <- pnorm(z)
+```
+
+```{r}
+ggplot() +
+  stat_function(fun  = dnorm, 
+                args = list(mean = mu, sd = sigma  / sqrt(n)),
+                geom = "density",
+                fill = "white",
+                xlim = c(mu - 4 * sigma / sqrt(n), 
+                         mu + 4 * sigma / sqrt(n)) ) +
+  stat_function(fun  = dnorm, 
+                args = list(mean = mu, sd = sigma / sqrt(n)),
+                geom = "density",
+                fill = "lightblue",
+                xlim = c(mu - 4 * sigma / sqrt(n), x_bar)) +
+   annotate("segment", x = x_bar, xend = x_bar,
+           y = 0, yend = dnorm(x_bar, mu, sigma  / sqrt(n))) +
+   annotate("text", x = x_bar - 0.1, y = 0.1, hjust = 1,
+           label = format(p, digits = 3)) +
+   scale_x_continuous(breaks = seq(-1.5, 4, by = 0.5)) +
+   labs(y = "Normal Density")
+```
+
+# Slide 19
+
+```{r}
+X <- rnorm(1e6, mu, sigma / sqrt(n) )
+
+d <- data.frame( density(X)[1:2] )
+```
+
+```{r}
+ggplot(d) +
+  theme(legend.position = "") +
+  geom_ribbon(aes(x = x,
+                  ymin = 0, 
+                  ymax = y,
+                  fill = x < x_bar),
+              color = "black") +
+  scale_x_continuous(breaks = seq(-1.5, 4, by = 0.5)) +
+  scale_fill_manual(values = c("white", "lightblue")) +
+  annotate("segment", x = x_bar, xend = x_bar,
+           y = 0, yend = dnorm(x_bar, mu, sigma  / sqrt(n))) +
+  annotate("text", 
+           x = x_bar - 0.1, y = 0.1, hjust = 1,
+           label = format( mean( X < x_bar ), digits = 3 ) ) +
+  labs(x = "X", y = "Normal Density")
+```
+
+# Slide 20
+
+```{r}
+dstudent_t <- 
+  function(x, df, mu = 0, sigma = 1, log = FALSE) {
+  if (log) {
+    dt( (x - mu) / sigma, df = df, log = TRUE ) - log(sigma)
+  } else {
+    dt( (x - mu) / sigma, df = df ) / sigma
+  }
+}
+
+pstudent_t <- 
+  function(q, df, mu = 0, sigma = 1, lower.tail = TRUE, log.p = FALSE) {
+  pt( (q - mu) / sigma, df = df, lower.tail = lower.tail, log.p = log.p )
+}
+
+qstudent_t <- 
+  function(p, df, mu = 0, sigma = 1, lower.tail = TRUE, log.p = FALSE) {
+  qt( p, df = df, lower.tail = lower.tail, log.p = log.p ) * sigma + mu
+}
+
+rstudent_t <- 
+  function(n, df, mu = 0, sigma = 1) {
+  rt( n, df = df ) * sigma + mu
+}
+```
+
+# Slide 21
+
+```{r}
+s <- sd(x) 
+
+t <- ( x_bar - mu ) / ( s / sqrt(n) )
+p <- pstudent_t(t, df = n - 1)
+```
+
+```{r}
+ggplot() +
+  stat_function(fun  = dstudent_t, 
+                args = list(df = n - 1, mu = mu, sigma = s  / sqrt(n)),
+                geom = "density",
+                fill = "white",
+                xlim = c(mu - 4 * s / sqrt(n), 
+                         mu + 4 * s / sqrt(n)) ) +
+  stat_function(fun  = dstudent_t, 
+                args = list(df = n - 1, mu = mu, sigma = s  / sqrt(n)),
+                geom = "density",
+                fill = "lightblue",
+                xlim = c(mu - 4 * s / sqrt(n), x_bar)) +
+  annotate("segment", x = x_bar, xend = x_bar,
+           y = 0, yend = dstudent_t(x_bar, n - 1, mu, s  / sqrt(n))) +
+  annotate("text", x = x_bar - 0.1, y = 0.1, hjust = 1,
+           label = format(p, digits = 3)) +
+  labs(y = "Student-t Density")
+```
+

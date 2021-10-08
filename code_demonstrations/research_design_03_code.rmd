@@ -21,14 +21,14 @@ knitr::opts_chunk$set(
   message = F)
 ```
 
-# Slide 10
+# Slide 11
 
 ```{r}
 set.seed(3)
 z <- sample(x = c(0,0,0,0,1,1,1,1), size = 8)
 ```
 
-# Slide 11
+# Slide 12
 
 ```{r}
 d <- 
@@ -60,7 +60,7 @@ y0      <- with(d, mean(yi[z == 0]) )
 tau_hat <- y1 - y0
 ```
 
-# Slide 12
+# Slide 13
 
 ```{r}
 

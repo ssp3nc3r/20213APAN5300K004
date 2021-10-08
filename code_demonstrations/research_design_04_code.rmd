@@ -31,7 +31,7 @@ library(patchwork)
 theme_set( theme_tufte(base_family = "sans") )
 ```
 
-# Slide 9
+# Slide 10
 
 ```{r}
 set.seed(29914)
@@ -52,7 +52,7 @@ ggplot() +
   labs(x = "sample size, n", y = TeX("sample mean, $\\bar{x}$"))
 ```
 
-# Slide 10
+# Slide 11
 
 ```{r}
 sample_mean <- function() { 
@@ -67,7 +67,7 @@ ggplot() +
   geom_line(aes(n, sigma / sqrt(n) ), color = "pink")
 ```
 
-# Slide 11
+# Slide 12
 
 ```{r}
 pdf <- ggplot() +
@@ -84,7 +84,7 @@ pdf <- ggplot() +
 pdf
 ```
 
-# Slide 12
+# Slide 13
 
 ```{r}
 cdf <- ggplot() +
@@ -102,7 +102,7 @@ cdf <- ggplot() +
 pdf / cdf
 ```
 
-# Slide 18
+# Slide 19
 
 ```{r}
 set.seed(92)
@@ -141,7 +141,7 @@ ggplot() +
    labs(y = "Normal Density")
 ```
 
-# Slide 19
+# Slide 20
 
 ```{r}
 X <- rnorm(1e6, mu, sigma / sqrt(n) )
@@ -167,7 +167,7 @@ ggplot(d) +
   labs(x = "X", y = "Normal Density")
 ```
 
-# Slide 20
+# Slide 21
 
 ```{r}
 dstudent_t <- 
@@ -195,7 +195,7 @@ rstudent_t <-
 }
 ```
 
-# Slide 21
+# Slide 22
 
 ```{r}
 s <- sd(x) 

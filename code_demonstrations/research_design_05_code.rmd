@@ -1,5 +1,5 @@
 ---
-title: "4. Research Design"
+title: "5. Research Design"
 description: |
   Example code used in class discussion.
 author:

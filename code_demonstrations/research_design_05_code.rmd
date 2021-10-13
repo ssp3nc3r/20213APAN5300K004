@@ -354,14 +354,16 @@ cdf <-
 cdf
 ```
 
-# Slide 19
+# Slide 20
 
-Example — test equality of proportions of male and female applicants to Berkeley
+Example — test equality of proportions of male and female applicants to Berkeley. Let's setup the data and calculate our test statistic and p-value.
 
 ```{r}
 data(UCBAdmissions)
 
-UCBAdmissions %>% 
+d_stat <- 
+  
+  UCBAdmissions %>% 
   
   as.data.frame() %>%
   
@@ -383,12 +385,40 @@ UCBAdmissions %>%
   )
 ```
 
-# Slide 20
+Let's graph our result.
+
+```{r}
+cdf <- 
+  ggplot() +
+  theme(axis.line.x = element_line()) +
+  scale_x_continuous(breaks = seq(0, 200, by = 50)) +
+  stat_function(
+    fun = pchisq,
+    args = list(df = d_stat$nu),
+    stat = "density",
+    xlim = c(0, 200)
+  ) +
+  geom_vline(xintercept = d_stat$w, color = "dodgerblue") +
+  annotate("text", x = d_stat$w + 1, y = 0, label = TeX("$w$") , color = "dodgerblue", size = 10/.pt, hjust = 0, vjust = 0) +
+  
+  geom_hline(yintercept = d_stat$p, color = "pink") +
+  annotate("text", x = -4, y = d_stat$p + 0.01, label = TeX("$p$") , color = "pink", size = 10/.pt, hjust = 0, vjust = 0) +
+  
+  geom_hline(yintercept = 0.05, color = "gray", linetype = "dotted") +
+  annotate("text", x = -4, y = 0.06, label = TeX("$\\alpha$, arbitrary threshold") , color = "gray", size = 10/.pt, hjust = 0, vjust = 0) +
+  labs(x = "", y = TeX("$F_\\phi(z)$"))
+
+cdf
+```
+
+# Slide 21
 
 Example — H0 : P(Admit | Gender) = P(Admit) and P(Gender | Admit) = P(Gender)
 
 ```{r}
-UCBAdmissions %>% 
+d_stat <- 
+  
+  UCBAdmissions %>% 
   
   as.data.frame() %>%
   
@@ -421,5 +451,29 @@ UCBAdmissions %>%
   )
 ```
 
+Let's graph our result.
 
+```{r}
+cdf <- 
+  ggplot() +
+  theme(axis.line.x = element_line()) +
+  scale_x_continuous(breaks = seq(0, 100, by = 50)) +
+  stat_function(
+    fun = pchisq,
+    args = list(df = d_stat$nu),
+    stat = "density",
+    xlim = c(0, 100)
+  ) +
+  geom_vline(xintercept = d_stat$w, color = "dodgerblue") +
+  annotate("text", x = d_stat$w + 1, y = 0, label = TeX("$w$") , color = "dodgerblue", size = 10/.pt, hjust = 0, vjust = 0) +
+  
+  geom_hline(yintercept = d_stat$p, color = "pink") +
+  annotate("text", x = -4, y = d_stat$p + 0.01, label = TeX("$p$") , color = "pink", size = 10/.pt, hjust = 0, vjust = 0) +
+  
+  geom_hline(yintercept = 0.05, color = "gray", linetype = "dotted") +
+  annotate("text", x = -4, y = 0.06, label = TeX("$\\alpha$, arbitrary threshold") , color = "gray", size = 10/.pt, hjust = 0, vjust = 0) +
+  labs(x = "", y = TeX("$F_\\phi(z)$"))
+
+cdf
+```
 

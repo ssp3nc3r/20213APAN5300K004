@@ -1,0 +1,425 @@
+---
+title: "4. Research Design"
+description: |
+  Example code used in class discussion.
+author:
+  - name: Scott Spencer 
+    url: https://ssp3nc3r.github.io
+    affiliation: Columbia University
+    affiliation_url: https://sps.columbia.edu/faculty/scott-spencer
+date: "2021 October 13"
+output:
+  bookdown::html_document2:
+    base_format: distill::distill_article
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = F,
+  error = F,
+  message = F)
+```
+
+Load libraries to use underlying functions
+
+```{r}
+library(tidyverse)
+library(ggthemes)
+library(latex2exp)
+library(patchwork)
+theme_set( theme_tufte(base_family = "sans") )
+```
+
+Here's our student-t functions from last time:
+
+```{r}
+dstudent_t <- 
+  function(x, df, mu = 0, sigma = 1, log = FALSE) {
+  if (log) {
+    dt( (x - mu) / sigma, df = df, log = TRUE ) - log(sigma)
+  } else {
+    dt( (x - mu) / sigma, df = df ) / sigma
+  }
+}
+
+pstudent_t <- 
+  function(q, df, mu = 0, sigma = 1, lower.tail = TRUE, log.p = FALSE) {
+  pt( (q - mu) / sigma, df = df, lower.tail = lower.tail, log.p = log.p )
+}
+
+qstudent_t <- 
+  function(p, df, mu = 0, sigma = 1, lower.tail = TRUE, log.p = FALSE) {
+  qt( p, df = df, lower.tail = lower.tail, log.p = log.p ) * sigma + mu
+}
+
+rstudent_t <- 
+  function(n, df, mu = 0, sigma = 1) {
+  rt( n, df = df ) * sigma + mu
+}
+```
+
+# Slide 9
+
+Simulate data so we can see how the test works.
+
+```{r}
+set.seed(1)
+# population
+mu1 <- 4
+pop1 <- rnorm(1e5, mean = mu1, sd = 2)
+
+# sample from the populations
+n1 <- 50
+x1 <- sample(x = pop1, size = n1, replace = FALSE)
+```
+
+Run the test.
+
+```{r}
+# setup the test to calculate manually
+xbar1 <- mean(x1)
+s1 <- sd(x1)
+nu <- n1 - 1
+
+# pretend we know population mu but not sigma
+t <- (xbar1 - mu1) / (s1 / sqrt(n1))
+
+# manually get p-value
+p <- pstudent_t(q = t, df = nu)
+p
+```
+
+Consider the results graphically.
+
+```{r}
+cdf <- 
+  ggplot() +
+  theme(axis.line.x = element_line()) +
+  scale_x_continuous(breaks = seq(-3, 3)) +
+  stat_function(
+    fun = pstudent_t,
+    args = list(df = nu, mu = 0, sigma = 1),
+    stat = "density",
+    xlim = c(-3, 3)
+  ) +
+  geom_vline(xintercept = t, color = "dodgerblue") +
+  annotate("text", x = t + 0.05, y = 0, label = TeX("$t$") , color = "dodgerblue", size = 10/.pt, hjust = 0, vjust = 0) +
+  
+  geom_hline(yintercept = p, color = "pink") +
+  annotate("text", x = -4, y = p + 0.01, label = TeX("$p$") , color = "pink", size = 10/.pt, hjust = 0, vjust = 0) +
+  
+  geom_hline(yintercept = 0.05, color = "gray", linetype = "dotted") +
+  annotate("text", x = -4, y = 0.06, label = TeX("$\\alpha$, arbitrary threshold") , color = "gray", size = 10/.pt, hjust = 0, vjust = 0) +
+  labs(x = TeX("$\\sigma$"), y = TeX("$F_t(x, \\nu)$"))
+
+cdf
+```
+
+Compare our calculations against r base function.
+
+```{r}
+a <- t.test(x = x1, mu = mu1, alternative = "less", conf.level = 0.95)
+p == a$p.value
+```
+
+# Slide 11
+
+Simulate second population for next example.
+
+```{r}
+# second population
+mu2 <- 2
+pop2 <- rnorm(1e5, mean = mu2, sd = 3)
+
+# sample from the second population
+n2 <- 50
+x2 <- sample(x = pop2, size = n2, replace = FALSE)
+```
+
+Run the test.
+
+```{r}
+xbar2 <- mean(x2)
+s2 <- sd(x2)
+  
+t <- ( xbar1 - xbar2 ) / sqrt( s1 ^ 2 / n1 + s2 ^ 2 / n2)
+  
+nu <- ( s1 ^ 2 / n1 + s2 ^ 2 / n2 ) ^ 2 / 
+      ( ( s1 ^ 2 / n1 ) ^ 2 / (n1 - 1) + ( s2 ^ 2 / n2 ) ^ 2 / (n2 - 1) )
+
+p <- pstudent_t(q = t, df = nu)  
+p
+```
+
+Graphically consider the results.
+
+```{r}
+cdf <- 
+  ggplot() +
+  theme(axis.line.x = element_line()) +
+  scale_x_continuous(breaks = seq(-3, 3)) +
+  stat_function(
+    fun = pstudent_t,
+    args = list(df = nu, mu = 0, sigma = 1),
+    stat = "density",
+    xlim = c(-3, 3)
+  ) +
+  geom_vline(xintercept = t, color = "dodgerblue") +
+  annotate("text", x = t + 0.05, y = 0, label = TeX("$t$") , color = "dodgerblue", size = 10/.pt, hjust = 0, vjust = 0) +
+  
+  geom_hline(yintercept = p, color = "pink") +
+  annotate("text", x = -4, y = p + 0.01, label = TeX("$p$") , color = "pink", size = 10/.pt, hjust = 0, vjust = 0) +
+  
+  geom_hline(yintercept = 0.05, color = "gray", linetype = "dotted") +
+  annotate("text", x = -4, y = 0.06, label = TeX("$\\alpha$, arbitrary threshold") , color = "gray", size = 10/.pt, hjust = 0, vjust = 0) +
+  labs(x = TeX("$\\sigma$"), y = TeX("$F_t(x, \\nu)$"))
+
+cdf
+```
+
+Compare our calculations against the base R function.
+
+```{r}
+a <- t.test(x1, x2, alternative = "less", var.equal = FALSE, conf.level = 0.95)
+p == a$p.value
+```
+
+# Slide 13
+
+Create example with proportions.
+
+```{r}
+# population proportion
+pi <- 0.4
+
+# population of proportions
+pop1 <- rbinom(n = 1e5, size = 1, prob = pi)
+
+# observed proportion (sample or experiment)
+p1 <- sample(pop1, size = n1)
+phat1 <- mean(p1)
+```
+
+Calculate the test.
+
+```{r}
+# calculate test statistic
+z <- ( phat1 - pi ) / sqrt( pi * (1 - pi) / n1 )
+
+# get location on cdf of standard normal distribution
+p <- pnorm(q = z)
+```
+
+Visualize the results.
+
+```{r}
+cdf <- 
+  ggplot() +
+  theme(axis.line.x = element_line()) +
+  scale_x_continuous(breaks = seq(-3, 3)) +
+  stat_function(
+    fun = pnorm,
+    args = list(mean = 0, sd = 1),
+    stat = "density",
+    xlim = c(-3, 3)
+  ) +
+  geom_vline(xintercept = z, color = "dodgerblue") +
+  annotate("text", x = z + 0.05, y = 0, label = TeX("$z$") , color = "dodgerblue", size = 10/.pt, hjust = 0, vjust = 0) +
+  
+  geom_hline(yintercept = p, color = "pink") +
+  annotate("text", x = -4, y = p + 0.01, label = TeX("$p$") , color = "pink", size = 10/.pt, hjust = 0, vjust = 0) +
+  
+  geom_hline(yintercept = 0.05, color = "gray", linetype = "dotted") +
+  annotate("text", x = -4, y = 0.06, label = TeX("$\\alpha$, arbitrary threshold") , color = "gray", size = 10/.pt, hjust = 0, vjust = 0) +
+  labs(x = TeX("$\\sigma$"), y = TeX("$F_\\phi(z)$"))
+
+cdf
+```
+
+# Slide 16
+
+Create two samples from different distributions.
+
+```{r}
+# simulate samples from experiment, samples from different distributions
+n <- 10
+
+set.seed(1)
+
+sample1 <- rbeta(n, 2, 2)
+sample2 <- rbeta(n, 2, 5)
+```
+
+Calculate the test.
+
+```{r}
+# organize data
+d <- 
+  data.frame(
+    sample = rep(1:2, each = n),
+    values = c(sample1, sample2)
+  ) %>%
+  arrange(values) %>%
+  mutate(order = seq(nrow(.))) %>%
+  group_by(values) %>%
+  mutate(rank = mean(order))
+
+
+Ta <- filter(d, sample == 1) %>% .$rank %>% sum()
+Tb <- filter(d, sample == 2) %>% .$rank %>% sum()  
+
+n1 <- with(d, sum(sample == 1))
+n2 <- with(d, sum(sample == 2))
+
+Ua <- n1 * n2 + (n1 * (n1 + 1)) / 2 - Ta 
+Ub <- n1 * n2 + (n2 * (n2 + 1)) / 2 - Tb
+U <- min(Ua, Ub)
+
+EU <-  n1 * n2 / 2
+sigma <- sqrt( n1 * n2 * (n1 + n2 + 1) / 12 )
+
+z <- (U - EU) / sigma
+p <- pnorm(z)
+p
+```
+
+
+# Slide 17
+
+Compare our results to a base R function.
+
+```{r}
+a <- wilcox.test(x = sample1, y = sample2, 
+            correct = FALSE, exact = FALSE,
+            alternative = "greater")
+p == a$p.value
+```
+
+# Slide 18
+
+Visualize both the population distribuitons,
+
+```{r}
+dist1 <- ggplot() +
+  theme(axis.line.x = element_line()) +
+  scale_x_continuous(breaks = seq(0, 1)) +
+  scale_y_continuous(breaks = NULL) +
+  stat_function(
+    fun = dbeta,
+    args = list(shape1 = 2, shape2 = 2),
+    stat = "density",
+    xlim = c(0, 1)
+  ) +
+  labs(y = "density", title = "Beta(2, 2)")
+
+dist2 <- ggplot() +
+  theme(axis.line.x = element_line()) +
+  scale_x_continuous(breaks = seq(0, 1)) +
+  scale_y_continuous(breaks = NULL) +
+  stat_function(
+    fun = dbeta,
+    args = list(shape1 = 2, shape2 = 5),
+    stat = "density",
+    xlim = c(0, 1)
+  ) +
+  labs(y = "", title = "Beta(2, 5)")
+
+dist1 + dist2
+```
+
+and our results,
+
+```{r}
+cdf <- 
+  ggplot() +
+  theme(axis.line.x = element_line()) +
+  scale_x_continuous(breaks = seq(-3, 3)) +
+  stat_function(
+    fun = pnorm,
+    args = list(mean = 0, sd = 1),
+    stat = "density",
+    xlim = c(-3, 3)
+  ) +
+  geom_vline(xintercept = z, color = "dodgerblue") +
+  annotate("text", x = z + 0.05, y = 0, label = TeX("$z$") , color = "dodgerblue", size = 10/.pt, hjust = 0, vjust = 0) +
+  
+  geom_hline(yintercept = p, color = "pink") +
+  annotate("text", x = -4, y = p + 0.01, label = TeX("$p$") , color = "pink", size = 10/.pt, hjust = 0, vjust = 0) +
+  
+  geom_hline(yintercept = 0.05, color = "gray", linetype = "dotted") +
+  annotate("text", x = -4, y = 0.06, label = TeX("$\\alpha$, arbitrary threshold") , color = "gray", size = 10/.pt, hjust = 0, vjust = 0) +
+  labs(x = TeX("$\\sigma$"), y = TeX("$F_\\phi(z)$"))
+
+cdf
+```
+
+# Slide 19
+
+Example — test equality of proportions of male and female applicants to Berkeley
+
+```{r}
+data(UCBAdmissions)
+
+UCBAdmissions %>% 
+  
+  as.data.frame() %>%
+  
+  group_by(Gender) %>%
+  
+  summarise(O = sum(Freq)) %>%
+  
+  ungroup() %>%
+  
+  mutate(E = mean(O)) %>%
+  
+  summarise(
+    w = sum((O - E) ^2 / E),
+    nu = n_distinct(Gender) - 1
+  ) %>%
+  
+  mutate(
+    p = pchisq(w, nu, lower.tail = FALSE)
+  )
+```
+
+# Slide 20
+
+Example — H0 : P(Admit | Gender) = P(Admit) and P(Gender | Admit) = P(Gender)
+
+```{r}
+UCBAdmissions %>% 
+  
+  as.data.frame() %>%
+  
+  mutate(
+    Admit_pct = sum(ifelse(Admit == "Admitted", Freq, 0) ) / sum(Freq)
+  ) %>%
+  
+  group_by(Gender) %>%
+  
+  mutate(
+    E = sum(Freq) * ifelse(Admit == "Admitted", Admit_pct, 1 - Admit_pct)
+  ) %>%
+  
+  group_by(Gender, Admit) %>%
+  
+  summarise(
+    O = sum(Freq), 
+    E = mean(E)
+  ) %>%
+  
+  ungroup() %>%
+  
+  summarise(
+    w = sum((O - E)^2 / E),
+    nu = (n_distinct(Admit) - 1) * (n_distinct(Gender) - 1)
+  ) %>%
+  
+  mutate(
+    p = pchisq(w, nu, lower.tail = FALSE)
+  )
+```
+
+
+

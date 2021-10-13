@@ -261,9 +261,9 @@ d <-
     values = c(sample1, sample2)
   ) %>%
   arrange(values) %>%
-  mutate(order = seq(nrow(.))) %>%
+  mutate(rank = seq( n() )) %>%
   group_by(values) %>%
-  mutate(rank = mean(order))
+  mutate(rank = mean(rank))
 
 
 Ta <- filter(d, sample == 1) %>% .$rank %>% sum()

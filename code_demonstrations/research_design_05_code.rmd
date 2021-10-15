@@ -406,7 +406,7 @@ cdf <-
   
   geom_hline(yintercept = 0.05, color = "gray", linetype = "dotted") +
   annotate("text", x = -4, y = 0.06, label = TeX("$\\alpha$, arbitrary threshold") , color = "gray", size = 10/.pt, hjust = 0, vjust = 0) +
-  labs(x = "", y = TeX("$F_\\phi(z)$"))
+  labs(x = "", y = TeX("$F_\\chi^2(z)$"))
 
 cdf
 ```
@@ -472,7 +472,7 @@ cdf <-
   
   geom_hline(yintercept = 0.05, color = "gray", linetype = "dotted") +
   annotate("text", x = -4, y = 0.06, label = TeX("$\\alpha$, arbitrary threshold") , color = "gray", size = 10/.pt, hjust = 0, vjust = 0) +
-  labs(x = "", y = TeX("$F_\\phi(z)$"))
+  labs(x = "", y = TeX("$F_\\chi^2(z)$"))
 
 cdf
 ```

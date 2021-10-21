@@ -1,0 +1,286 @@
+---
+title: "6. Tutorial — observational studies"
+description: |
+  Example effects of confounder on analysis of observational studies.
+author:
+  - name: Scott Spencer 
+    url: https://ssp3nc3r.github.io
+    affiliation: Columbia University
+    affiliation_url: https://sps.columbia.edu/faculty/scott-spencer
+date: "2021 October 20"
+output:
+  bookdown::html_document2:
+    base_format: distill::distill_article
+    pandoc_args: ["--number-sections"]
+    toc: true
+    toc_depth: 2
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = F,
+  error = F,
+  message = F)
+```
+
+Load libraries to use underlying functions,
+
+```{r}
+library(tidyverse)
+library(ggthemes)
+```
+
+and make this tutorial reproducible,
+
+```{r}
+set.seed(1)
+```
+
+# Preliminary setup and functions
+
+In an observational study --- unlike a randomized experiment --- we don't control which observations choose the "control" or "treatment". Someone or something outside our study determined this. 
+
+First, we'll create a function that accepts a "preference for treatment" and returns z, an indicator for that observations's selection of either control (`0`) or treatment (`1`).
+
+```{r}
+z_i <- function(prob_treatment) {
+  sapply(
+    prob_treatment,
+    function(x) sample(
+      x = 0:1, 
+      size = 1, 
+      replace = TRUE, 
+      prob = c(1 - x, x) )
+  )
+}
+```
+
+Second, we'll create a function that returns an observed outcome, given the influence of an attribute (whether we record the observation or not) and treatment effect (if it exists):
+
+```{r}
+y_ <- function(N, attribute, treatment_effect = 0) {
+  rnorm(N, attribute, sd = 0.2) + rnorm(N, treatment_effect, sd = 0.2) 
+}
+```
+
+Third, we'll setup a function to graph the distributions of outcomes in the control and treatment groups, their mean values, and if including the `confounder` in the analysis, stratifying those distributions and means by the `confounder`.
+
+```{r}
+graph_study <- function(d, include_confounder = TRUE) {
+  
+  d <- d %>% mutate(z = ifelse(z, "treatment", "control"))
+  N <- nrow(d)
+  
+  # calculate means within control & treatment groups, and if
+  # considering the confounder, stratifying those by the confounder
+  if (include_confounder) {
+    d_bar <- d %>% group_by(confounder, z) %>% 
+      summarise(count = n(), y = mean(y))
+  } else {
+    d_bar <- d %>% group_by(z) %>% 
+      summarise(count = n(), y = mean(y))
+  }
+  
+  # create base graphic showing distributions and averages for 
+  # control and treatment groups
+  p <- 
+    ggplot(data = d) +
+    theme_tufte(base_family = "sans") +
+    geom_density(
+      mapping = aes(
+        x = y, 
+        y = ..scaled.. * n
+      ), 
+      fill = "lightgray", 
+      outline.type = "both", 
+      bw = 0.3) +
+    geom_vline(
+      data = d_bar, 
+      mapping = aes(xintercept = y)) +
+    geom_label(
+      data = d_bar, 
+      mapping = aes(
+        x = y + 0.1, 
+        y = N / 40,
+        label = paste0(
+          "N = ", 
+          format(count, big.mark   = ","))
+        ),
+      size = 6/.pt, 
+      hjust = 0,
+      alpha = 0.8,
+      label.padding = unit(0.15, "lines")) +
+    scale_x_continuous(
+      breaks = 0:6,  
+      name = "observed outcome (y)")
+  
+  # if including the confounder, also stratify the graphics
+  if (include_confounder) {
+    p + 
+      scale_y_continuous(
+        breaks = NULL, 
+        name = "", 
+        sec.axis = sec_axis(
+          ~., 
+          breaks = NULL, 
+          name = "strata by confounder")) + 
+      facet_grid(confounder ~ z)
+  } else {
+    p +     
+      scale_y_continuous(
+        breaks = NULL, 
+        name = "") + 
+      facet_grid(~ z)
+  }
+  
+}
+
+```
+
+# Simulation studies
+
+Now that we have our functions set up, let's simulate some observational studies. We set the observed size of the study, and create a variable called `confounder` that represents an attribute that varies (in this example, possible values are in the set `[1,2,3]`) across the observations.
+
+```{r}
+n_obs <- 1e5
+obs_study <- data.frame(
+  confounder = rep( seq(3), each = n_obs / 3, length.out = n_obs)
+)
+```
+
+## First scenario
+
+In this scenario, we'll consider **no** treatment effect, and the probability of selecting the treatment is **not** influenced by attribute `confounder`
+
+Assume no treatment effect:
+
+```{r}
+mu_treatment <- 0
+```
+
+Create potential outcomes with and without the treatment.
+
+```{r}
+obs_study <- 
+  obs_study %>% 
+  mutate(y_0 = y_(n_obs, confounder),
+         y_1 = y_(n_obs, confounder, mu_treatment) 
+  )
+```
+
+In the first scenario, we'll consider observations where their attribute (`confounder`) did **not** influence how likely they were to choose the control or treatment; *i.e.*, `z` does not depend on `confounder`.
+
+```{r}
+obs_study <- 
+  obs_study %>% 
+  mutate(
+    z = z_i(prob_treatment = rep(0.5, nrow(.))),
+    y = ifelse(z, y_0, y_1) 
+  )
+```
+
+Let's consider an analysis that *ignores* the confounder:
+
+```{r}
+graph_study(obs_study, include_confounder = FALSE)
+```
+
+In this scenario, our analysis ignoring the `confounder` correctly estimates no treatment effect. Compare that analysis with one that *includes* the confounder:
+
+```{r}
+graph_study(obs_study, include_confounder = TRUE)
+```
+
+There is no difference. If we stratify by `confounder`, each stratum recovers no treatment effect, too.
+
+But without randomized experiments, we cannot depend upon no attributes of the studied population influencing their choice of control or treatment. Let's consider two more common scenarios.
+
+## Second scenario
+
+Still assuming **no** treatment effect, the potential outcomes of our observations have not changed, but this time we'll see how the analysis looks when the observed attributes  **influence** how likely the observation was to use the control or treatment. Specifically, we'll code that the *higher* the value of the confounder, the *more* likely the observation was to use the treatment. 
+
+```{r}
+obs_study <- 
+  obs_study %>% 
+  mutate(
+    z = z_i(prob_treatment = case_when(
+      confounder == 1 ~ 0.2, 
+      confounder == 2 ~ 0.5, 
+      confounder == 3 ~ 0.8)),
+    y = ifelse(z, y_1, y_0) 
+  )
+```
+
+Again, let's consider an analysis that *ignores* the confounder:
+
+```{r}
+graph_study(obs_study, include_confounder = FALSE)
+```
+
+This time, our analysis incorrectly suggests that a treatment effect exists. Compare that analysis with one that *includes* the confounder:
+
+```{r}
+graph_study(obs_study, include_confounder = TRUE)
+```
+
+When attempting to account for the `confounder`, unlike in the above analysis, this stratified analysis correctly reveals that no treatment effect exists.
+
+## Third scenario
+
+In our third scenario, we will code a **real** treatment effect:
+
+```{r}
+mu_treatment <- 1
+```
+
+Since the potential outcomes with a treatment change, we will re-create those (potential outcomes without the treatment have not changed, so we can leave those as is):
+
+```{r}
+obs_study <- 
+  obs_study %>% 
+  mutate(
+    y_1 = y_(n_obs, confounder, mu_treatment) 
+  )
+```
+
+Now, we'll consider observations where their attributes again **influence** how likely each was to choose the control or treatment. This time, we'll code that the *higher* the value of the confounder, the *less* likely the observation was to use the treatment.  
+
+```{r}
+obs_study <- 
+  obs_study %>% 
+  mutate(
+    z = z_i(prob_treatment = case_when(
+      confounder == 1 ~ 0.8, 
+      confounder == 2 ~ 0.5, 
+      confounder == 3 ~ 0.2)),
+    y = ifelse(z, y_1, y_0) 
+  )
+```
+
+Let's consider an analysis that *ignores* the confounder:
+
+```{r}
+graph_study(obs_study, include_confounder = FALSE)
+```
+
+We know that a real treatment effect exists (because we simulated the data that way), but this analysis that ignores the confounder gets it wrong: it masks that real effect.
+
+Compare that analysis with one that *includes* the confounder:
+
+```{r}
+graph_study(obs_study, include_confounder = TRUE)
+```
+
+Again, accounting for the confounder successfully reveals the true effect.
+
+Of note, the above studies do not attempt to adjust the observational study in any way that allows us to make inferences on a population. We'll leave that for a separate tutorial.
+
+# Summary
+
+In observational studies, we must consider and correct for the nature of observations before attempting to make any causal inferences. I hope this simple tutorial helps to demonstrate how confounders can bias or mask our analysis of effect sizes.
+
+I'll encourage you to try to understand each chunk of code, and play with different values for `n_obs`, `mu_treatment`, `confounder` and other aspects of the simulation studies to see how the results may change.
+
+Complicating matters more, in real observational studies, there may be many confounding attributes, those attributes may be non-linearly related to selection of treatment, and may be a numeric type, not just categorical or ordered.

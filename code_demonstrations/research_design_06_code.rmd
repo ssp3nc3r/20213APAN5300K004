@@ -1,0 +1,422 @@
+---
+title: "6. Research Design"
+description: |
+  Example code used in class discussion.
+author:
+  - name: Scott Spencer 
+    url: https://ssp3nc3r.github.io
+    affiliation: Columbia University
+    affiliation_url: https://sps.columbia.edu/faculty/scott-spencer
+date: "2021 October 13"
+output:
+  bookdown::html_document2:
+    base_format: distill::distill_article
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = F,
+  error = F,
+  message = F)
+```
+
+Load libraries to use underlying functions
+
+```{r}
+library(tidyverse)
+theme_set( ggthemes::theme_tufte(base_family = "sans") )
+```
+
+# Slide 7
+
+```{r}
+set.seed(1)
+
+N <- 1e5
+sigma <- 0.5
+
+d <- data.frame(
+  independent = c(rep("control", 0.5 * N), rep("treatment", 0.5 * N),
+                  rep("control", 0.5 * N), rep("treatment", 0.5 * N),
+                  rep("control", 0.5 * N), rep("treatment", 0.5 * N)),
+  confounder = c(rep(1, N),
+                 rep(2, N),
+                 rep(3, N)),
+  dependent = c(rnorm(N, 2, sigma),
+                rnorm(N, 3, sigma),
+                rnorm(N, 4, sigma))
+)
+```
+
+# Slide 8
+
+Omitting the confounder
+
+```{r}
+d_bar <- 
+  d %>% 
+  group_by(independent) %>% 
+  summarise(
+    count = n(), 
+    dependent = mean(dependent)
+  )
+
+ggplot(data = d) +
+
+  geom_density(
+    mapping = aes(
+      x = dependent, 
+      y = ..scaled.. * n), 
+      fill = "lightgray", 
+    outline.type = "both", 
+    bw = 0.25) +
+  
+  geom_vline(
+    data = d_bar, 
+    mapping = aes(xintercept = dependent)) +
+  
+  geom_text(
+    data = d_bar, 
+    mapping = aes(
+      x = 5, 
+      y = N / 10,
+      label = paste0("N = ", format(count, big.mark   = ","))
+    ),
+    size = 8/.pt, 
+    hjust = 0) +
+  
+  facet_grid( ~ independent) +
+  
+  scale_x_continuous(breaks = 0:6) +
+  
+  scale_y_continuous(breaks = NULL) +
+  
+  labs(x = "Dependent variable", y = "Relative frequency")
+```
+
+Including the confounder
+
+```{r}
+d_bar <- 
+  d %>% 
+  group_by(confounder, independent) %>% 
+  summarise(
+    count = n(), 
+    dependent = mean(dependent)
+  )
+
+ggplot(data = d) +
+
+  geom_density(
+    mapping = aes(
+      x = dependent, 
+      y = ..scaled.. * n), 
+      fill = "lightgray", 
+    outline.type = "both", 
+    bw = 0.25) +
+  
+  geom_vline(
+    data = d_bar, 
+    mapping = aes(xintercept = dependent)) +
+  
+  geom_text(
+    data = d_bar, 
+    mapping = aes(
+      x = 5, 
+      y = N / 10,
+      label = paste0("N = ", format(count, big.mark   = ","))
+    ),
+    size = 8/.pt, 
+    hjust = 0) +
+  
+  facet_grid(confounder ~ independent) +
+  
+  scale_x_continuous(breaks = 0:6) +
+  
+  scale_y_continuous(breaks = NULL) +
+  
+  labs(x = "Dependent variable", y = "Relative frequency")
+```
+
+# Slide 9
+
+```{r}
+d <- data.frame(
+  independent = c(rep("control", 0.8 * N), rep("treatment", 0.2 * N),
+                  rep("control", 0.5 * N), rep("treatment", 0.5 * N),
+                  rep("control", 0.2 * N), rep("treatment", 0.8 * N)),
+  confounder = c(rep(1, N),
+                 rep(2, N),
+                 rep(3, N)),
+  dependent = c(rnorm(N, 2, sigma), 
+                rnorm(N, 3, sigma), 
+                rnorm(N, 4, sigma))
+)
+```
+
+# Slide 10
+
+Omitting the confounder
+
+```{r}
+d_bar <- 
+  
+  d %>% 
+  
+  group_by(independent) %>% 
+  
+  summarise(
+    count = n(), 
+    dependent = mean(dependent)
+  )
+
+ggplot(data = d) +
+  geom_density(
+    mapping = aes(
+      x = dependent, 
+      y = ..scaled.. * n), 
+    fill = "lightgray", 
+    outline.type = "both", 
+    bw = 0.25
+  ) +
+  
+  geom_vline(
+    data = d_bar, 
+    mapping = aes(xintercept = dependent)
+  ) +
+  
+  geom_text(
+    data = d_bar, 
+    mapping = aes(
+      x = 5, 
+      y = N / 10,
+      label = paste0("N = ", format(count, big.mark   = ","))
+    ),
+    size = 8/.pt, 
+    hjust = 0
+  ) +
+  
+  facet_grid( ~ independent) +
+  
+  scale_x_continuous(breaks = 0:6) +
+  
+  scale_y_continuous(breaks = NULL) +
+  
+  labs(x = "Dependent variable", y = "Relative frequency")
+```
+
+Including the confounder
+
+```{r}
+d_bar <- 
+  
+  d %>% 
+  
+  group_by(confounder, independent) %>% 
+  
+  summarise(
+    count = n(), 
+    dependent = mean(dependent)
+  )
+
+ggplot(data = d) +
+  geom_density(
+    mapping = aes(
+      x = dependent, 
+      y = ..scaled.. * n), 
+    fill = "lightgray", 
+    outline.type = "both", 
+    bw = 0.25
+  ) +
+  
+  geom_vline(
+    data = d_bar, 
+    mapping = aes(xintercept = dependent)
+  ) +
+  
+  geom_text(
+    data = d_bar, 
+    mapping = aes(
+      x = 5, 
+      y = N / 10,
+      label = paste0("N = ", format(count, big.mark   = ","))
+    ),
+    size = 8/.pt, 
+    hjust = 0
+  ) +
+  
+  facet_grid(confounder ~ independent) +
+  
+  scale_x_continuous(breaks = 0:6) +
+  
+  scale_y_continuous(breaks = NULL) +
+  
+  labs(x = "Dependent variable", y = "Relative frequency")
+```
+
+# Slide 11
+
+```{r}
+d <- data.frame(
+  independent = c(rep("control", 0.2 * N), rep("treatment", 0.8 * N),
+                  rep("control", 0.5 * N), rep("treatment", 0.5 * N),
+                  rep("control", 0.8 * N), rep("treatment", 0.2 * N)),
+  confounder = c(rep(1, N),
+                 rep(2, N),
+                 rep(3, N)),
+  dependent = c(rnorm(0.2 * N, 1.5, sigma), rnorm(0.8 * N, 2.5, sigma), 
+                rnorm(0.5 * N, 2.5, sigma), rnorm(0.5 * N, 3.5, sigma), 
+                rnorm(0.8 * N, 3.5, sigma), rnorm(0.2 * N, 4.5, sigma))
+)
+```
+
+# Slide 12
+
+Omitting the confounder
+
+```{r}
+d_bar <- 
+  
+  d %>% 
+  
+  group_by(independent) %>% 
+  
+  summarise(
+    count = n(), 
+    dependent = mean(dependent)
+  )
+
+ggplot(data = d) +
+  
+  geom_density(
+    mapping = aes(
+      x = dependent, 
+      y = ..scaled.. * n), 
+    fill = "lightgray", 
+    outline.type = "both", 
+    bw = 0.25
+  ) +
+  
+  geom_vline(
+    data = d_bar, 
+    mapping = aes(xintercept = dependent)) +
+  
+  geom_text(
+    data = d_bar, 
+    mapping = aes(
+      x = 5, 
+      y = N / 10,
+      label = paste0("N = ", format(count, big.mark   = ","))
+    ),
+    size = 8/.pt, 
+    hjust = 0
+  ) +
+  
+  facet_grid( ~ independent) +
+  
+  scale_x_continuous(breaks = 0:6) +
+  
+  scale_y_continuous(breaks = NULL) +
+  
+  labs(x = "Dependent variable", y = "Relative frequency")
+```
+
+Including the confounder
+
+
+```{r}
+d_bar <- 
+  
+  d %>% 
+  
+  group_by(confounder, independent) %>% 
+  
+  summarise(
+    count = n(), 
+    dependent = mean(dependent)
+  )
+
+ggplot(data = d) +
+  
+  geom_density(
+    mapping = aes(
+      x = dependent, 
+      y = ..scaled.. * n), 
+    fill = "lightgray", 
+    outline.type = "both", 
+    bw = 0.25
+  ) +
+  
+  geom_vline(
+    data = d_bar, 
+    mapping = aes(xintercept = dependent)) +
+  
+  geom_text(
+    data = d_bar, 
+    mapping = aes(
+      x = 5, 
+      y = N / 10,
+      label = paste0("N = ", format(count, big.mark   = ","))
+    ),
+    size = 8/.pt, 
+    hjust = 0
+  ) +
+  
+  facet_grid(confounder ~ independent) +
+  
+  scale_x_continuous(breaks = 0:6) +
+  
+  scale_y_continuous(breaks = NULL) +
+  
+  labs(x = "Dependent variable", y = "Relative frequency")
+```
+
+# Slide 15
+
+```{r}
+set.seed(1)
+n_0 <- 20
+y_0 <- rnorm(n_0, 2.0, 5.0)
+
+n_1 <- 30
+y_1 <- rnorm(n_1, 8.0, 5.0)
+```
+
+```{r}
+mean(y_0)
+sd(y_0) / sqrt(n_0)
+
+
+mean(y_1)
+sd(y_1) / sqrt(n_1)
+```
+
+```{r}
+sim_0 <- data.frame(y_0)
+glm_0  <- glm(y_0 ~ 1, data = sim_0)
+
+sim_1 <- data.frame(y_1)
+glm_1  <- glm(y_1 ~ 1, data = sim_1)
+
+```
+
+# Slide 16
+
+```{r}
+diff <- mean(y_1) - mean(y_0)
+
+s_0 <- sd(y_0) / sqrt(n_0)
+s_1 <- sd(y_1) / sqrt(n_1)
+
+s <- sqrt(s_0 ^ 2 + s_1 ^ 2)
+```
+
+```{r}
+y <- c(y_0, y_1)
+x <- c(rep(0, n_0), rep(1, n_1))
+sim <- data.frame(x, y)
+
+glm_delta <- glm(y ~ 1 + x, data = sim)
+```
+

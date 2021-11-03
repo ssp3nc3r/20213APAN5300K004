@@ -1,0 +1,86 @@
+---
+title: "8. Research Design"
+description: |
+  Example code used in class discussion.
+author:
+  - name: Scott Spencer 
+    url: https://ssp3nc3r.github.io
+    affiliation: Columbia University
+    affiliation_url: https://sps.columbia.edu/faculty/scott-spencer
+date: "2021 November 3"
+output:
+  bookdown::html_document2:
+    base_format: distill::distill_article
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = F,
+  error = F,
+  message = F)
+```
+
+Load libraries to use underlying functions
+
+```{r}
+library(tidyverse)
+theme_set( ggthemes::theme_tufte(base_family = "sans") )
+```
+
+# Slide 11
+
+```{r}
+df1   <- 15
+df2   <- 12
+alpha <- 0.05
+xmax  <- qf(0.001, df1, df2, lower.tail = FALSE)
+
+ggplot() +
+  stat_function(fun  = df, 
+                args = list(df1 = df1, df2 = df2),
+                geom = "density",
+                fill = "white",
+                xlim = c(0, xmax) ) +
+  stat_function(fun  = df, 
+                args = list(df1 = df1, df2 = df2),
+                geom = "density",
+                fill = "lightblue",
+                xlim = c(qf(alpha, df1, df2, lower.tail = FALSE), xmax) ) +
+  labs(y = "F-distribution Density")
+
+```
+
+# Slide 12
+
+```{r}
+# example in pre-lecture notes
+library(dplyr)
+dat <- read.csv("../common/Lectures/quiz video and text data.csv", header = TRUE)
+
+# F-statistic
+k <- nlevels( factor(dat$video) )
+N <- nrow( dat )
+
+SS_B <- dat %>%
+  mutate(bar_quiz = mean(quiz)) %>%
+  group_by(video) %>%
+  summarise(sb = n() * (mean(quiz) - first(bar_quiz)) ^ 2) %>%
+  ungroup() %>%
+  summarise(SS_B = sum(sb)) %>% .$SS_B
+  
+SS_W <- dat %>%
+  group_by(video) %>%
+  mutate(sw = (quiz - mean(quiz)) ^ 2 ) %>%
+  ungroup() %>%
+  summarise(SS_W = sum(sw) ) %>%
+  .$SS_W
+
+Fstat <- ( SS_B / (k - 1) ) / ( SS_W / (N - k) )
+
+# probability of this or greater variation in means from F-distribution
+p <- pf(Fstat, df1 = k - 1, df2 = N - k, lower.tail = F)
+
+p
+```
+

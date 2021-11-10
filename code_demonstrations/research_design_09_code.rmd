@@ -1,0 +1,197 @@
+---
+title: "9. Research Design"
+description: |
+  Example code used in class discussion.
+author:
+  - name: Scott Spencer 
+    url: https://ssp3nc3r.github.io
+    affiliation: Columbia University
+    affiliation_url: https://sps.columbia.edu/faculty/scott-spencer
+date: "2021 November 10"
+output:
+  bookdown::html_document2:
+    base_format: distill::distill_article
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = F,
+  error = F,
+  message = F)
+```
+
+Load libraries to use underlying functions
+
+```{r}
+library(tidyverse)
+library(ggthemes)
+theme_set( ggthemes::theme_tufte(base_family = "sans") )
+library(latex2exp)
+```
+
+# Slide 17
+
+```{r}
+p0    <- 0.5
+p     <- 0.6
+alpha <- 0.05 / 2
+
+z_alpha_2 <- qnorm(p = alpha, mean = 0, sd = 1, lower.tail = F)
+
+# get n for 80 percent power
+beta    <- 0.2
+z_beta  <- qnorm(p = 1 - beta, mean = 0, sd = 1, lower.tail = T)
+n_pwr80 <- ( (z_alpha_2 + z_beta) * sqrt( p0 * (1 - p0) ) / (p - p0) ) ^ 2
+
+# get n for 50 percent power
+beta    <- 0.5
+z_beta  <- qnorm(p = 1 - beta, mean = 0, sd = 1, lower.tail = T)
+n_pwr50 <- ( (z_alpha_2 + z_beta) * sqrt( p0 * (1 - p0) ) / (p - p0) ) ^ 2
+
+```
+
+
+
+```{r}
+# simulate experiments
+survey <- function(n, p) {
+  
+  x     <- rbinom(n = n, size = 1, prob = p)
+  x_bar <- mean(x)
+  se    <- sd(x) / sqrt(n)
+  
+  c(x_bar, se)
+}
+
+
+set.seed(1)
+p_hat_96  <- replicate( 1e5, survey(n = n_pwr50, p) )
+
+set.seed(1)
+p_hat_196 <- replicate( 1e5, survey(n = n_pwr80, p) )
+```
+
+
+# Slide 18
+
+
+Overlay both distributions
+
+
+```{r}
+ggplot() + 
+  theme(
+    axis.text = element_text(size = 36/.pt, face = "bold"),
+    axis.ticks = element_blank()
+  ) +
+  geom_vline(
+    xintercept = p0, 
+    lwd = 1
+  ) +
+  geom_density(
+    mapping = aes(
+      x = p_hat_96[1,]
+    ),  
+    kernel = "cosine", 
+    bw = .03, 
+    outline.type = "both", 
+    color = "pink",
+    lwd = 1
+  ) +
+  geom_density(
+    mapping = aes(
+      x = p_hat_196[1,]
+    ), 
+    kernel = "cosine", 
+    bw = .03, 
+    outline.type = "both", 
+    color = "#3174B5",
+    lwd = 1
+  ) +
+  scale_x_continuous(
+    limits = c(0.3, 0.85)
+  ) +
+  scale_y_continuous(
+    breaks = NULL
+  ) +
+  labs(x = "", y = "")
+```
+
+Look at 50 random experiments for each sample size
+
+```{r}
+n_samples <- 50
+idx <- sample.int(length(p_hat_96[1,]), n_samples)
+```
+
+Simulations where $n = 96$
+
+```{r}
+ggplot() +
+  theme(
+    axis.text = element_text(size = 36/.pt, face = "bold"),
+    axis.ticks = element_blank()
+  ) +
+  geom_vline(
+    xintercept = p0, 
+    lwd = 1
+  ) +
+  geom_segment(
+    mapping = aes(
+      x = p_hat_96[1, idx] - 2 * p_hat_96[2, idx],
+      xend = p_hat_96[1, idx] + 2 * p_hat_96[2, idx],
+      y    = seq(n_samples),
+      yend = seq(n_samples) 
+    ),
+    color = "pink",
+    lwd = 1
+  ) +
+  scale_x_continuous(
+    limits = c(0.3, 0.85)
+  ) +
+  scale_y_continuous(
+    breaks = NULL
+  ) +
+  labs(
+    x = "", 
+    y = "", 
+    title = TeX("")
+  )
+```
+
+Simulations where $n = 196$
+
+```{r}
+ggplot() +
+  theme(
+    axis.text = element_text(size = 36/.pt, face = "bold"),
+    axis.ticks = element_blank()
+  ) +
+  geom_vline(
+    xintercept = p0, 
+    lwd = 1
+  ) +
+  geom_segment(
+    mapping = aes(
+      x = p_hat_196[1, idx] - 2 * p_hat_196[2, idx],
+      xend = p_hat_196[1, idx] + 2 * p_hat_196[2, idx],
+      y    = seq(n_samples),
+      yend = seq(n_samples) 
+    ),
+    color = "#3174B5",
+    lwd = 1
+  ) +
+  scale_x_continuous(
+    limits = c(0.3, 0.85)
+  ) +
+  scale_y_continuous(
+    breaks = NULL
+  ) +
+  labs(
+    x = "", 
+    y = "", 
+    title = TeX("")
+  )
+```
+
